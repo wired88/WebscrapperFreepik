@@ -78,9 +78,6 @@ def get_all_images(url):
     print("urls found: ", urls)
     return urls
 
-
-
-
 def download(url, pathname):
     # if path doesn't exist, make that path dir
     if not os.path.isdir(pathname):
@@ -130,12 +127,11 @@ if __name__ == "__main__":
     # url = args.url
     # path = args.path
 
-
     index = 1
     while index != 200:
         print("Scanning Webpage", index, ". . .")
-        main(f"https://de.freepik.com/search?format=search&page={index}&query=AI+Food",
-             r"C:\Users\wired\OneDrive\Desktop\Scrapped\Food")
+        main(f"https://de.freepik.com/search?format=search&page={index}&query=AI Epic",
+             r"C:\Users\wired\OneDrive\Desktop\Scrapped\Epic")
         index += 1
 
 
