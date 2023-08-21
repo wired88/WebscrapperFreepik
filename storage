@@ -1,0 +1,192 @@
+img_class_final_url
+
+ for img in tqdm(soup.find_all("img"), "Extracting images"):
+                img_url = img.attrs.get("src") or img.attrs.get("data-src") or img.attrs.get("data-original")
+                if not img_url:
+                    print("get images failed ...")
+                    # if img does not contain src attribute, just skip
+                    continue
+
+                # make the URL absolute by joining domain with the URL that is just extracted
+                img_url = urljoin(url, img_url)
+
+                # remove URLs like '/hsts-pixel.gif?c=3.2.5'
+                try:
+                    pos = img_url.index("?")
+                    img_url = img_url[:pos]
+                except ValueError:
+                    pass
+                # finally, if the url is valid
+                if is_valid(img_url) and img_url not in urls:
+                    urls.append(img_url)
+
+
+
+
+    if not more:
+        # get the Figures Elements form the ListView Page
+        for figure in tqdm(soup.find_all("figure")):
+            for anchor in tqdm(figure.find_all("a")):
+                url_to_img = anchor.attrs.get("href")
+                print(f"Url to final Image: {url_to_img}")
+                if not url_to_img:
+                    print("Url not valid . . .")
+                    continue
+                firefox_new_window = Options()
+                firefox_new_window.add_argument("--headless")
+                driver = webdriver.Firefox(options=firefox_new_window)
+                driver.get(url_to_img)
+
+                # get the html elemnt of that website
+                soup_final_page = bs(driver.page_source, "html.parser")
+                all_img = tqdm(soup_final_page.find_all("img"), "Get images")
+
+                for img in all_img:
+                    img_class = img.attrs.get("class")
+                    if img_class == "thumb":
+                        print("Image found . . .")
+                        img_class_final_url = (img.attrs.get("src") or
+                                               img.attrs.get("data-src") or
+                                               img.attrs.get("data-original"))
+
+                        if not img_class_final_url:
+                            print("src from final image is not valid ...")
+                            # if img does not contain src attribute, just skip
+                            continue
+
+                        # img_class_final_url = urljoin(url, img_class_final_url)
+
+                        if is_valid(img_class_final_url): #and img_class_final_url not in urls
+                            urls.append(img_class_final_url)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def is_valid(url):
+    """
+    Checks whether `url` is a valid URL.
+    """
+    parsed = urlparse(url)
+    return bool(parsed.netloc) and bool(parsed.scheme)
+
+
+def get_all_images(url):
+    """
+    Returns all image URLs on a single `url`
+    """
+    # initialize the session
+    firefox_options = Options()
+    firefox_options.add_argument("--headless")
+    driver = webdriver.Firefox(options=firefox_options)
+    # make the HTTP request and retrieve response
+    driver.get(url)
+    # chill 2 sec
+    time.sleep(2)
+    # construct the soup parser
+
+    urls = []
+    # set infinite scroll
+    more = True
+    i = 1
+    scroll_pause_time = 1
+    screen_height = driver.execute_script("return window.screen.height;")  # get the screen height of the web
+    while more:
+        driver.execute_script("window.scrollTo(0, {screen_height}*{i});".format(screen_height=screen_height, i=i))
+
+        i += 1
+        print("i:", i)
+        time.sleep(scroll_pause_time)
+        # update scroll height each time after scrolled, as the scroll height can change after we scrolled the page
+        scroll_height = driver.execute_script("return document.body.scrollHeight;")
+        # Break the loop when the height we need to scroll to is larger than the total scroll height
+        if (screen_height) * i > scroll_height:
+            more = False
+
+    """
+     soup will contain all html elements on the webpage. So make sure to place it below the "scroll-down-while-loop"
+     otherwise soup will only contain the html from the landingpage
+     """
+    soup = bs(driver.page_source, "html.parser")
+
+    """
+    infos
+    final img class = thumb
+    Plan: figure->a->get href->go to url->look for img with class = thumb-> put src in urls list
+    """
+
+    if not more:
+        # get the Figures Elements form the ListView Page
+        print("1")
+        for figure in tqdm(soup.find_all("figure")):
+            print("2")
+            #get all anchor tags in figure
+            for anchor in tqdm(figure.find_all("a"), class_="showcase showcase--completed"):
+                print("3")
+                #get link from that anchor to the image
+                url_to_img = anchor.attrs.get("href")
+                print("4")
+                if not url_to_img:
+                    print("5")
+                    continue
+                # Visit the Webpage
+                driver.get(url_to_img)
+                print("6")
+                # sleep so the page can be load
+                time.sleep(4)
+                print("7")
+                #get whole html of that new sitew
+                soup_final_page = bs(driver.page_source, "html.parser")
+                print("8")
+                #looking for all img tags on that webpage
+                all_img = soup_final_page.find_all("img", class_="thumb")
+                print("9")
+                # loop through that list of img
+                for img in all_img:
+
+                    # get and check the value of class-atttr
+                    img_class = img.attrs.get("class")
+                    print("class = ", img_class)
+                    #save here the src-attr-val ...
+                    img_class_final_url = (img.attrs.get("src") or
+                                           img.attrs.get("data-src") or
+                                           img.attrs.get("data-original"))
+                    if not img_class_final_url:
+                        # if img does not contain src attribute, just skip
+                        continue
+                    # and put the "base-link" in fron of it
+                    img_class_final_url = urljoin(url, img_class_final_url)
+                    print("14", img_class_final_url)
+                    #check fro validation and put them in the list of images
+                    if is_valid(img_class_final_url) and img_class_final_url not in urls:
+                        urls.append(img_class_final_url)
+
+
+
+    # close the session to end browser process
+    driver.quit()
+    print("urls found: ",urls)
+    return urls
